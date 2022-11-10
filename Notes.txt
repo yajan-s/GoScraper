@@ -1,0 +1,3 @@
+Async process is limited by kernal (eg: yajan's mac: limmited to 1000 file descriptors)
+    - This can be fixed by temporarily changing the file descriptor limit for host machine's OS (For bash/zsh use $ulimit -n <desired limit>)
+    - might need to change cpu-time and data-seg-time depending on the host machine

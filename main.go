@@ -2,29 +2,35 @@ package main
 
 import (
 	"fmt"
-	"time"
-
-	"github.com/gocolly/colly"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"strings"
 )
 
+func checkStatus(ch chan string) {
+	resp, err := http.Get("https://api.nike.com/launch/launch_views/v2/5c196c26-cc06-39d1-b79b-cb086e93282a")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	sb := string(body)
+	i := strings.Index(sb, "launchState")
+	ch <- strings.Split(strings.Split(sb[i:], " ")[2], "\"")[1]
+}
+
 func main() {
-	c := colly.NewCollector(
-		colly.AllowedDomains("www.nike.com"),
-	)
-	c.OnXML("//*[@id='root']/div/div/div[1]/div/div[1]/div[2]/div/section[1]/div[2]/aside/div/div[2]", func(e *colly.XMLElement) {
-		text := e.Text
-		fmt.Println(text)
-		for true {
-			time.Sleep(3 * time.Second)
-			if text[72:85] == "StockUpcoming" {
-				fmt.Println("Not available yet, still looking...")
-			} else {
-				fmt.Println("InStock, buying...")
-			}
-		}
-	})
-	c.OnError(func(r *colly.Response, err error) {
-		fmt.Println("Request URL:", r.Request.URL, "failed with response:", r, "\nError:", err)
-	})
-	c.Visit("https://www.nike.com/ca/launch/t/air-jordan-7-x-trophy-room-true-red-and-obsidian")
+	ch := make(chan string)
+	for i := 0; i < 1000; i++ {
+
+		go checkStatus(ch)
+		val := <-ch
+
+		fmt.Println("Status: " + val)
+
+	}
+	close(ch)
 }
